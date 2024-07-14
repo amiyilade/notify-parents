@@ -20,7 +20,7 @@ def send_sms(parent_phone, message):
     response = requests.get(BULKSMS_API_URL, params=payload)
     return response.json()
 
-@app.route('', methods=['POST'])
+@app.route('/', methods=['POST'])
 def webhook():
     data = request.json
     parent_name = data.get('dynamic__116192000000047924')
