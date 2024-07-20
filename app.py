@@ -30,7 +30,7 @@ def get_attendee_details(api_url, domain_uri):
     response = requests.get(url)
     return response
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['POST', 'GET'])
 def webhook():
     data = request.json
     
@@ -54,6 +54,8 @@ def webhook():
 
     else:
         return jsonify({"error": "Missing webhook data"}), 400
+    
+    
 
 if __name__ == '__main__':
     app.run(debug=True)
