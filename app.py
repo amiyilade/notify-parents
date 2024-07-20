@@ -28,34 +28,52 @@ def send_sms(parent_phone, message):
 def get_attendee_details(api_url, domain_uri):
     url = f"{domain_uri}{api_url}"
     response = requests.get(url)
-    return response
+    if response.headers['Content-Type'] == 'text/plain':
+        return response.text
+    else:
+        return None
 
 @app.route('/', methods=['POST', 'GET'])
 def webhook():
-    data = request.json
-    
-    # Log the incoming request data
-    app.logger.info("Received data: %s", data)
-    
-    # Extract the relevant information from the webhook payload
-    api_url = data.get('api_url')
-    domain_uri = data.get('domain_uri')
-    
-    if api_url and domain_uri:
-        # Fetch attendee details
-        attendee_details = get_attendee_details(api_url, domain_uri)
-        app.logger.info("Attendee details: %s", attendee_details)
+    if request.method == 'POST':
+        data = request.json
         
-        checkin_time = (datetime.now() + timedelta(hours=1)).strftime("%d-%b-%Y %H:%M:%S")
+        # Log the incoming request data
+        app.logger.info("Received data: %s", data)
         
-        message = f"They checked in to Global STAR 2024 at {checkin_time}."
-        response = send_sms("2348029002325", message)
-        return jsonify(response)
+        # Extract the relevant information from the webhook payload
+        api_url = data.get('api_url')
+        domain_uri = data.get('domain_uri')
+        
+        if api_url and domain_uri:
+            # Fetch attendee details
+            attendee_details = get_attendee_details(api_url, domain_uri)
+            if attendee_details:
+                app.logger.info("Attendee details: %s", attendee_details)
+                
+                checkin_time = (datetime.now() + timedelta(hours=1)).strftime("%d-%b-%Y %H:%M:%S")
+                
+                message = f"They checked in to Global STAR 2024 at {checkin_time}."
+                response = send_sms("2348029002325", message)
+                return jsonify(response)
+            else:
+                return jsonify({"error": "Failed to retrieve attendee details or unsupported content type"}), 400
 
-    else:
-        return jsonify({"error": "Missing webhook data"}), 400
-    
-    
+        else:
+            return jsonify({"error": "Missing webhook data"}), 400
+
+    elif request.method == 'GET':
+        api_url = request.args.get('api_url')
+        domain_uri = request.args.get('domain_uri')
+        
+        if api_url and domain_uri:
+            attendee_details = get_attendee_details(api_url, domain_uri)
+            if attendee_details:
+                return jsonify({"attendee_details": attendee_details})
+            else:
+                return jsonify({"error": "Failed to retrieve attendee details or unsupported content type"}), 400
+        else:
+            return jsonify({"error": "Missing required parameters"}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
