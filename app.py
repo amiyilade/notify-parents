@@ -17,7 +17,7 @@ def get_attendee_details(url):
     else:
         return None
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/', methods=['POST'])
 def handle_post():
     global extracted_url
     data = request.json
@@ -36,7 +36,7 @@ def handle_post():
     else:
         return jsonify({"error": "Missing webhook data"}), 400
 
-@app.route('/fetch_data', methods=['GET'])
+@app.route('/', methods=['GET'])
 def fetch_data():
     global extracted_url
     if extracted_url:
