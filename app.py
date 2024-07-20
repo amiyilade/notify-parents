@@ -2,13 +2,13 @@ from flask import Flask, request, jsonify
 import requests
 from datetime import datetime, timedelta
 import logging
-import json
 
 app = Flask(__name__)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
+# BulkSMS API configuration
 BULKSMS_API_URL = "https://portal.nigeriabulksms.com/api/"
 USERNAME = "tcwsecretariat@gmail.com"
 PASSWORD = "UFyd6@UxytPXi8"
@@ -25,8 +25,10 @@ def send_sms(parent_phone, message):
     response = requests.get(BULKSMS_API_URL, params=payload)
     return response.json()
 
-def prettify_json(json_content):
-    return json.dumps(json_content, indent=4)
+def get_attendee_details(api_url, domain_uri):
+    url = f"{domain_uri}{api_url}"
+    response = requests.get(url)
+    return response.json()
 
 @app.route('/', methods=['POST'])
 def webhook():
@@ -35,29 +37,23 @@ def webhook():
     # Log the incoming request data
     app.logger.info("Received data: %s", data)
     
-    # Extract domain and API URL
-    domain_url = data.get('domain_url')
+    # Extract the relevant information from the webhook payload
     api_url = data.get('api_url')
+    domain_uri = data.get('domain_uri')
     
-    if domain_url and api_url:
-        full_url = f"{domain_url}{api_url}"
+    if api_url and domain_uri:
+        # Fetch attendee details
+        attendee_details = get_attendee_details(api_url, domain_uri)
+        app.logger.info("Attendee details: %s", attendee_details)
         
-        try:
-            response = requests.get(full_url)
-            response.raise_for_status()
-            json_content = response.json()
-            pretty_json = prettify_json(json_content)
-            
-            # Log the prettified JSON content
-            app.logger.info("Prettified JSON content from %s: %s", full_url, pretty_json)
-        except requests.RequestException as e:
-            app.logger.error("Error fetching JSON from %s: %s", full_url, str(e))
-            return jsonify({"error": "Failed to fetch JSON from URL"}), 500
-    
-    checkin_time = (datetime.now() + timedelta(hours=1)).strftime("%d-%b-%Y %H:%M:%S")
-    message = f"They checked in to Global STAR 2024 at {checkin_time}."
-    response = send_sms("2348029002325", message)
-    return jsonify(response)
+        checkin_time = (datetime.now() + timedelta(hours=1)).strftime("%d-%b-%Y %H:%M:%S")
+        
+        message = f"They checked in to Global STAR 2024 at {checkin_time}."
+        response = send_sms("2348029002325", message)
+        return jsonify(response)
+
+    else:
+        return jsonify({"error": "Missing webhook data"}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
