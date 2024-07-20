@@ -28,7 +28,7 @@ def send_sms(parent_phone, message):
 def get_attendee_details(api_url, domain_uri):
     url = f"{domain_uri}{api_url}"
     response = requests.get(url)
-    return response.json()
+    return response
 
 @app.route('/', methods=['POST'])
 def webhook():
